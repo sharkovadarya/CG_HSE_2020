@@ -9,6 +9,10 @@ public class MetaBallField
     public float BallRadius = 1;
 
     private Vector3[] _ballPositions;
+
+    // since I don't want to define constants to 'slice' the area into cubes, 
+    // I'll be using a bounding box calculated here
+    public Bounds BoundingBox;
     
     /// <summary>
     /// Call Field.Update to react to ball position and parameters in run-time.
@@ -16,6 +20,15 @@ public class MetaBallField
     public void Update()
     {
         _ballPositions = Balls.Select(x => x.position).ToArray();
+
+        BoundingBox = new Bounds();
+        var radius1 = new Vector3(BallRadius, BallRadius, BallRadius);
+        for (var i = 0; i < 3; i++)
+        {
+            // expand in both directions
+            BoundingBox.Encapsulate(_ballPositions[i] + radius1 + Vector3.one * 0.1f);
+            BoundingBox.Encapsulate(_ballPositions[i] - radius1 - Vector3.one * 0.1f);
+        }
     }
     
     /// <summary>
