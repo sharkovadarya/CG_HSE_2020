@@ -21,6 +21,7 @@
             #include "UnityLightingCommon.cginc"
             
             #define EPS 1e-7
+            #define MONTE_CARLO_ITERATIONS 1000
 
             struct appdata
             {
@@ -94,14 +95,37 @@
                 float3 normal = normalize(i.normal);
                 
                 float3 viewDirection = normalize(_WorldSpaceCameraPos - i.pos.xyz);
+
+                float3 l = float3(0, 0, 0);
+                float s = 0;
+
+                for (int j = 0; j < MONTE_CARLO_ITERATIONS; j++)
+                {
+                    float cosTheta = Random(2 * j); // up to PI / 2
+                    float sinTheta = sqrt(1 - Sqr(cosTheta));
+                    float alpha = Random(2 * j + 1) * UNITY_PI * 2;
+
+                    float3 w = float3(sinTheta * cos(alpha), sinTheta * sin(alpha), cosTheta);
+
+                    float c = dot(normal, w);
+                    if (c < 0)
+                    {
+                        c *= -1;
+                        w *= -1;
+                    }
+
+                    float brdf = GetSpecularBRDF(viewDirection, w, normal);
+                    l += SampleColor(w) * brdf * c;
+                    s += brdf * c; 
+                }
                 
                 // Replace this specular calculation by Montecarlo.
                 // Normalize the BRDF in such a way, that integral over a hemysphere of (BRDF * dot(normal, w')) == 1
                 // TIP: use Random(i) to get a pseudo-random value.
-                float3 viewRefl = reflect(-viewDirection.xyz, normal);
-                float3 specular = SampleColor(viewRefl);
+                // float3 viewRefl = reflect(-viewDirection.xyz, normal);
+                // float3 specular = SampleColor(viewRefl);
                 
-                return fixed4(specular, 1);
+                return fixed4(l / s, 1);
             }
             ENDCG
         }
